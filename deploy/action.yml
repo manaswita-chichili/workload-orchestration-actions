@@ -13,6 +13,8 @@ runs:
     - name: Deploy
       shell: bash
       run: |
+        set -euo pipefail
+
         # Setup CLI Extension
         az extension add -n workload-orchestration
 
@@ -36,20 +38,11 @@ runs:
         target="${BASH_REMATCH[3]}"
 
         echo "Publishing $solution/$version to $target"
-        if ! review=$(az workload-orchestration target review --resource-group "$resource_group" --target-name "$target" --solution-template-version-id "$solution_template_version_id"); then
-          echo "::error::Review failed for $solution/$version on $target"
-          exit 1
-        fi
+        review=$(az workload-orchestration target review --resource-group "$resource_group" --target-name "$target" --solution-template-version-id "$solution_template_version_id")
         review_id=$(echo "$review" | jq -r '.id')
-        if ! publish=$(az workload-orchestration target publish --resource-group "$resource_group" --target-name "$target" --solution-version-id "$review_id"); then
-          echo "::error::Publish failed for $solution/$version on $target"
-          exit 1
-        fi
+        publish=$(az workload-orchestration target publish --resource-group "$resource_group" --target-name "$target" --solution-version-id "$review_id")
         echo "Published $solution/$version to $target"
 
         echo "Deploying $solution/$version to $target"
-        if ! install=$(az workload-orchestration target install --resource-group "$resource_group" --target-name "$target" --solution-version-id "$review_id"); then
-          echo "::error::Install failed for $solution/$version on $target"
-          exit 1
-        fi
+        install=$(az workload-orchestration target install --resource-group "$resource_group" --target-name "$target" --solution-version-id "$review_id")
         echo "Deployed $solution/$version to $target"
